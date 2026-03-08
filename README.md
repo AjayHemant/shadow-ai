@@ -1,8 +1,5 @@
 # 🛡️ SentinelGate DLP
 
-<p align="center">
-  <img src="sentinelgate_hero_banner_1772940107413.png" alt="SentinelGate Hero Banner" width="100%">
-</p>
 
 <p align="center">
   <strong>The Next-Gen System-Wide Data Leak Protection (DLP) for the Modern Workplace.</strong>
