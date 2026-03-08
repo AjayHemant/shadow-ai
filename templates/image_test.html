@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SentinelGate Image Scanner Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0a0c12;
+            color: #e8eaf0;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #6c63ff;
+        }
+
+        .test-box {
+            border: 2px dashed #6c63ff;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .test-box:hover {
+            background: rgba(108, 99, 255, 0.1);
+        }
+
+        input[type="file"] {
+            margin: 20px 0;
+        }
+
+        #result {
+            background: #161925;
+            border: 1px solid #252a3a;
+            border-radius: 14px;
+            padding: 20px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 13px;
+            min-height: 100px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #6c63ff, #5a52d5);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+
+        .status {
+            color: #ffd166;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🛡️ SentinelGate — Image OCR Scanner Test</h1>
+    <p>Upload or paste an image below. It will be sent to the backend for OCR text extraction + DLP scanning.</p>
+
+    <div class="test-box" id="dropzone">
+        📁 Drag & Drop an image here, or click below to select a file
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*" />
+    <br>
+    <button onclick="testPaste()">📋 Test with Clipboard (Ctrl+V first)</button>
+    <button onclick="testDirect()">🚀 Direct API Test (generated image)</button>
+
+    <div class="status" id="status">Waiting for image...</div>
+    <div id="result">Results will appear here...</div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:5000/api/simulate/image';
+
+        function setStatus(msg) { document.getElementById('status').textContent = msg; }
+        function setResult(data) { document.getElementById('result').textContent = JSON.stringify(data, null, 2); }
+
+        // File input
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            setStatus('Reading file: ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)');
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const base64 = ev.target.result;
+                setStatus('Sending to backend for OCR scan...');
+                await sendToBackend(base64);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Drag & drop
+        const dropzone = document.getElementById('dropzone');
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.background = 'rgba(108,99,255,0.2)'; });
+        dropzone.addEventListener('dragleave', () => { dropzone.style.background = ''; });
+        dropzone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropzone.style.background = '';
+            const file = e.dataTransfer.files[0];
+            if (!file || !file.type.startsWith('image/')) { setStatus('Not an image file!'); return; }
+            setStatus('Reading dropped file: ' + file.name);
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                setStatus('Sending to backend...');
+                await sendToBackend(ev.target.result);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Paste
+        document.addEventListener('paste', async (e) => {
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.startsWith('image/')) {
+                    const file = items[i].getAsFile();
+                    setStatus('Reading pasted image...');
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                        setStatus('Sending pasted image to backend...');
+                        await sendToBackend(ev.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                    return;
+                }
+            }
+        });
+
+        async function sendToBackend(base64Data) {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_data: base64Data,
+                        source_app: 'Image Test Page',
+                        destination: 'test.example.com'
+                    })
+                });
+                const data = await res.json();
+                setStatus('✅ Response received! Action: ' + data.action);
+                setResult(data);
+            } catch (err) {
+                setStatus('❌ Error: ' + err.message);
+                setResult({ error: err.message });
+            }
+        }
+
+        // Direct API test – generates a test image with text programmatically
+        async function testDirect() {
+            setStatus('Generating test image with AWS key text...');
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 150;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, 800, 150);
+            ctx.fillStyle = '#00ff41';
+            ctx.font = 'bold 24px Consolas, monospace';
+            ctx.fillText('AWS_ACCESS_KEY_ID=AKIA1234567890ABCDEF', 20, 50);
+            ctx.fillText('AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG', 20, 100);
+            const base64 = canvas.toDataURL('image/png');
+            setStatus('Sending generated image to backend...');
+            await sendToBackend(base64);
+        }
+    </script>
+</body>
+
+</html>

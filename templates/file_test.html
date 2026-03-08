@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SentinelGate | File Security Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0e14;
+            --surface: #151921;
+            --primary: #4361ee;
+            --danger: #ef476f;
+            --success: #06d6a0;
+            --text: #e0e6ed;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--surface);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        h1 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-badge {
+            background: rgba(6, 214, 160, 0.1);
+            color: var(--success);
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .drop-zone {
+            margin: 2rem 0;
+            padding: 3rem;
+            border: 2px dashed #2d3748;
+            border-radius: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .drop-zone.active {
+            border-color: var(--primary);
+            background: rgba(67, 97, 238, 0.05);
+        }
+
+        .drop-zone p {
+            color: var(--text-dim);
+        }
+
+        .drop-zone b {
+            color: var(--text);
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px 16px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #result {
+            background: #000;
+            padding: 1.5rem;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            border: 1px solid #222;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .type-info {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🛡️ File Scan Test <span class="status-badge">Active</span></h1>
+        <p style="color: var(--text-dim)">Test your DLP file extraction & scanning pipeline (.txt, .pdf, .docx, .doc)
+        </p>
+
+        <div class="drop-zone" id="dropZone">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                style="margin-bottom:1rem; opacity: 0.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <polyline points="9 15 12 12 15 15"></polyline>
+            </svg>
+            <p>Drag & drop or <b>click to upload</b></p>
+            <input type="file" id="fileInput" multiple style="display:none" accept=".txt,.pdf,.doc,.docx">
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <div id="result"></div>
+
+        <div class="type-info">
+            Supported types: TEXT (.txt) • ADOBE (.pdf) • MS WORD (.docx, .doc)
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const resultDiv = document.getElementById('result');
+
+        dropZone.onclick = () => fileInput.click();
+
+        dropZone.ondragover = (e) => {
+            e.preventDefault();
+            dropZone.classList.add('active');
+        };
+
+        dropZone.ondragleave = () => dropZone.classList.remove('active');
+
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('active');
+            handleFiles(e.dataTransfer.files);
+        };
+
+        fileInput.onchange = () => handleFiles(fileInput.files);
+
+        async function handleFiles(files) {
+            resultDiv.style.display = 'none';
+            fileList.innerHTML = '';
+
+            for (const file of files) {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `<span>${file.name}</span><span style="color:var(--text-dim)">${(file.size / 1024).toFixed(1)} KB</span>`;
+                fileList.appendChild(item);
+
+                // Convert file to base64
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const base64 = e.target.result;
+
+                    try {
+                        const response = await fetch('/api/simulate/file', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                file_data: base64,
+                                filename: file.name,
+                                source_app: 'File Test Tool',
+                                destination: 'api.simulation.test'
+                            })
+                        });
+
+                        const data = await response.json();
+                        resultDiv.style.display = 'block';
+                        resultDiv.textContent = `[${file.name}] Response:\n` + JSON.stringify(data, null, 2);
+
+                        if (data.action === 'BLOCK') {
+                            resultDiv.style.borderColor = '#ef476f';
+                            alert('🚨 SENSITIVE DATA DETECTED IN ' + file.name + '!\nAction: ' + data.action + '\nReason: ' + data.reason);
+                        } else {
+                            resultDiv.style.borderColor = '#06d6a0';
+                        }
+                    } catch (err) {
+                        resultDiv.style.display = 'block';
+                        resultDiv.textContent = 'Error calling API: ' + err;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
+</body>
+
+</html>

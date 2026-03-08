@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SentinelGate Test</title>
+</head>
+
+<body style="font-family:monospace;padding:40px;background:#111;color:#0f0">
+    <h2>🛡️ SentinelGate Extension Test Page</h2>
+    <p>If the extension is working, you will see an alert or console message when this page loads.</p>
+    <input type="text" id="test" placeholder="Type secret here: sk-abc123"
+        style="width:400px;padding:10px;font-size:16px;margin:10px 0;display:block">
+    <button onclick="document.getElementById('test').value='my api_key is sk-abc12345678901234567890'">Load Test API
+        Key</button>
+    <button style="margin-left:10px"
+        onclick="document.getElementById('test').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}))">Simulate
+        Enter</button>
+    <pre id="log" style="background:#000;padding:20px;margin-top:20px;min-height:100px"></pre>
+    <script>
+        // This will show whether the extension injected its script
+        window.addEventListener('load', () => {
+            document.getElementById('log').textContent = 'Page loaded. Check if SentinelGate banner or toast appears when you click "Load Test API Key" then press Enter.';
+        });
+    </script>
+</body>
+
+</html>

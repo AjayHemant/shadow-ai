@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SentinelGate — Pre-Network DLP Dashboard</title>
+  <meta name="description"
+    content="SentinelGate monitors and blocks sensitive data before it leaves your system to the network." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ─────────────────────────── RESET & TOKENS ─────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #08090d;
+      --surface: #0f1117;
+      --surface2: #171923;
+      --border: #1e2230;
+      --border2: #252a3a;
+
+      --text: #e8eaf0;
+      --text-muted: #7a8299;
+      --text-dim: #4a5168;
+
+      --accent: #6c63ff;
+      --accent-glow: rgba(108, 99, 255, .25);
+
+      --critical: #ff4d6d;
+      --high: #ff8c42;
+      --medium: #ffd166;
+      --low: #06d6a0;
+      --allow: #06d6a0;
+      --warn: #ffd166;
+      --block: #ff4d6d;
+
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, .6);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─────────────────────────── SCROLLBAR ─────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 3px;
+    }
+
+    /* ─────────────────────────── TOP NAV ─────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 64px;
+      background: rgba(15, 17, 23, .85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -.5px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6c63ff, #a78bfa);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .brand span {
+      background: linear-gradient(135deg, #a78bfa, #6c63ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--allow);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(6, 214, 160, .4);
+      }
+
+      50% {
+        box-shadow: 0 0 0 6px rgba(6, 214, 160, 0);
+      }
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* ─────────────────────────── LAYOUT ─────────────────────────── */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 28px 32px;
+    }
+
+    /* ─────────────────────────── STAT CARDS ─────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s, transform .2s;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--card-color, var(--accent)) 0%, transparent 60%);
+      opacity: .06;
+      pointer-events: none;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border2);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .stat-icon {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      font-size: 28px;
+      opacity: .15;
+    }
+
+    .stat-card.blocked {
+      --card-color: var(--block);
+    }
+
+    .stat-card.blocked .stat-value {
+      color: var(--block);
+    }
+
+    .stat-card.warned {
+      --card-color: var(--warn);
+    }
+
+    .stat-card.warned .stat-value {
+      color: var(--warn);
+    }
+
+    .stat-card.allowed {
+      --card-color: var(--allow);
+    }
+
+    .stat-card.allowed .stat-value {
+      color: var(--allow);
+    }
+
+    .stat-card.total {
+      --card-color: var(--accent);
+    }
+
+    .stat-card.total .stat-value {
+      color: var(--accent);
+    }
+
+    /* ─────────────────────────── TWO-COLUMN LAYOUT ─────────────────────────── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 20px;
+    }
+
+    @media (max-width: 1100px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ─────────────────────────── PANEL ─────────────────────────── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .panel-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ─────────────────────────── ALERTS TABLE ─────────────────────────── */
+    .alerts-scroll {
+      max-height: 540px;
+      overflow-y: auto;
+    }
+
+    .alert-row {
+      display: grid;
+      grid-template-columns: 80px 100px 100px 1fr 1fr 100px 80px;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      transition: background .15s;
+      animation: slideIn .3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .alert-row:hover {
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .alert-row:last-child {
+      border-bottom: none;
+    }
+
+    .alert-header-row {
+      display: grid;
+      grid-template-columns: 80px 100px 100px 1fr 1fr 100px 80px;
+      gap: 12px;
+      padding: 10px 24px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .alert-time {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .alert-source {
+      font-weight: 500;
+    }
+
+    .alert-dest {
+      color: var(--text-muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .alert-detections {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    /* ─────────────────────────── BADGE ─────────────────────────── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .badge.CRITICAL {
+      background: rgba(255, 77, 109, .15);
+      color: var(--critical);
+      border: 1px solid rgba(255, 77, 109, .3);
+    }
+
+    .badge.HIGH {
+      background: rgba(255, 140, 66, .15);
+      color: var(--high);
+      border: 1px solid rgba(255, 140, 66, .3);
+    }
+
+    .badge.MEDIUM {
+      background: rgba(255, 209, 102, .15);
+      color: var(--medium);
+      border: 1px solid rgba(255, 209, 102, .3);
+    }
+
+    .badge.LOW {
+      background: rgba(6, 214, 160, .15);
+      color: var(--low);
+      border: 1px solid rgba(6, 214, 160, .3);
+    }
+
+    .badge.NONE {
+      background: rgba(122, 130, 153, .1);
+      color: var(--text-muted);
+      border: 1px solid rgba(122, 130, 153, .2);
+    }
+
+    .action-badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+
+    .action-badge.BLOCK {
+      background: rgba(255, 77, 109, .18);
+      color: var(--block);
+      border: 1px solid rgba(255, 77, 109, .35);
+    }
+
+    .action-badge.WARN {
+      background: rgba(255, 209, 102, .18);
+      color: var(--warn);
+      border: 1px solid rgba(255, 209, 102, .35);
+    }
+
+    .action-badge.ALLOW {
+      background: rgba(6, 214, 160, .12);
+      color: var(--allow);
+      border: 1px solid rgba(6, 214, 160, .25);
+    }
+
+    /* ─────────────────────────── SIMULATOR ─────────────────────────── */
+    .simulator-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .sim-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .form-input,
+    .form-textarea,
+    .form-select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+
+    .form-input:focus,
+    .form-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 120px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .preset-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .preset-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    /* ─────────────────────────── RESULT BOX ─────────────────────────── */
+    .result-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      animation: fadeIn .3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .result-action {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .result-action.BLOCK {
+      color: var(--block);
+    }
+
+    .result-action.WARN {
+      color: var(--warn);
+    }
+
+    .result-action.ALLOW {
+      color: var(--allow);
+    }
+
+    .result-reason {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .result-detections {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .result-detection-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+
+    .result-detection-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .result-detection-name {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .result-detection-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ─────────────────────────── BUTTONS ─────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: all .2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6c63ff, #a78bfa);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(108, 99, 255, .4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(108, 99, 255, .5);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-danger {
+      background: rgba(255, 77, 109, .15);
+      color: var(--block);
+      border: 1px solid rgba(255, 77, 109, .3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(255, 77, 109, .25);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--border2);
+      color: var(--text);
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    /* ─────────────────────────── LIVE INDICATOR ─────────────────────────── */
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--allow);
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--allow);
+      animation: pulse 1.5s infinite;
+    }
+
+    /* ─────────────────────────── EMPTY STATE ─────────────────────────── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 24px;
+      color: var(--text-dim);
+      gap: 12px;
+      text-align: center;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      opacity: .4;
+    }
+
+    .empty-state-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .empty-state-sub {
+      font-size: 13px;
+    }
+
+    /* ─────────────────────────── TOAST ─────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+      z-index: 999;
+    }
+
+    #toast.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ─────────────────────────── SEVERITY LEGEND ─────────────────────────── */
+    .severity-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sev-item {
+      text-align: center;
+    }
+
+    .sev-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 4px;
+    }
+
+    .sev-count {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .sev-item.crit .sev-label,
+    .sev-item.crit .sev-count {
+      color: var(--critical);
+    }
+
+    .sev-item.high .sev-label,
+    .sev-item.high .sev-count {
+      color: var(--high);
+    }
+
+    .sev-item.med .sev-label,
+    .sev-item.med .sev-count {
+      color: var(--medium);
+    }
+
+    .sev-item.lo .sev-label,
+    .sev-item.lo .sev-count {
+      color: var(--low);
+    }
+
+    /* ─────────────────────────── PROXY STATUS BAR ─────────────────────────── */
+    .proxy-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 10px 32px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+
+    .proxy-bar.active {
+      background: rgba(6, 214, 160, .06);
+      border-bottom-color: rgba(6, 214, 160, .2);
+    }
+
+    .proxy-bar.inactive {
+      background: rgba(255, 209, 102, .06);
+      border-bottom-color: rgba(255, 209, 102, .2);
+    }
+
+    .proxy-mode-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .proxy-mode-tag.system-wide {
+      background: rgba(6, 214, 160, .15);
+      color: var(--allow);
+      border: 1px solid rgba(6, 214, 160, .3);
+    }
+
+    .proxy-mode-tag.extension-only {
+      background: rgba(255, 209, 102, .15);
+      color: var(--warn);
+      border: 1px solid rgba(255, 209, 102, .3);
+    }
+
+    .proxy-detail {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .proxy-toggle {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text-muted);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .proxy-toggle:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ─────────────────────────── APP MONITOR ─────────────────────────── */
+    .app-monitor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      padding: 16px;
+    }
+
+    .app-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: all .2s;
+    }
+
+    .app-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .app-card.scannable {
+      border-left: 3px solid var(--allow);
+    }
+
+    .app-card.unscannable {
+      border-left: 3px solid var(--warn);
+    }
+
+    .app-icon {
+      font-size: 20px;
+      width: 32px;
+      text-align: center;
+    }
+
+    .app-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .app-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-category {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .app-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .app-status-dot.protected {
+      background: var(--allow);
+      box-shadow: 0 0 6px rgba(6, 214, 160, .5);
+    }
+
+    .app-status-dot.blind {
+      background: var(--warn);
+      box-shadow: 0 0 6px rgba(255, 209, 102, .5);
+    }
+
+    .app-summary {
+      display: flex;
+      gap: 16px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .app-summary-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .app-summary-item .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .app-summary-item .dot.green {
+      background: var(--allow);
+    }
+
+    .app-summary-item .dot.orange {
+      background: var(--warn);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ─── TOP BAR ─── -->
+  <nav class="topbar">
+    <div class="brand">
+      <div class="brand-icon">🛡️</div>
+      <span>SentinelGate</span>
+    </div>
+    <div class="nav-status">
+      <div class="status-dot"></div>
+      DLP Engine Active
+    </div>
+    <div class="nav-actions">
+      <div class="live-badge"><span class="live-dot"></span> Live</div>
+    </div>
+  </nav>
+
+  <!-- ─── PROXY STATUS BAR ─── -->
+  <div class="proxy-bar inactive" id="proxyBar">
+    <span class="proxy-mode-tag extension-only" id="proxyModeTag">⏳ Checking...</span>
+    <span class="proxy-detail" id="proxyDetail">Detecting proxy status...</span>
+    <button class="proxy-toggle" id="proxyToggleBtn" onclick="toggleProxy()" style="display:none;">Toggle</button>
+  </div>
+
+  <!-- ─── MAIN ─── -->
+  <div class="container">
+
+    <!-- STAT CARDS -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card total">
+        <div class="stat-icon">📊</div>
+        <div class="stat-label">Total Scanned</div>
+        <div class="stat-value" id="statTotal">—</div>
+      </div>
+      <div class="stat-card blocked">
+        <div class="stat-icon">🚫</div>
+        <div class="stat-label">Blocked</div>
+        <div class="stat-value" id="statBlocked">—</div>
+      </div>
+      <div class="stat-card warned">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-label">Warned</div>
+        <div class="stat-value" id="statWarned">—</div>
+      </div>
+      <div class="stat-card allowed">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">Allowed</div>
+        <div class="stat-value" id="statAllowed">—</div>
+      </div>
+    </div>
+
+    <!-- TWO-COL -->
+    <div class="main-grid">
+
+      <!-- ALERT LOG -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">🔍 Alert Log</span>
+          <div class="panel-actions">
+            <button class="btn btn-ghost" id="refreshBtn" onclick="loadAlerts()">↻ Refresh</button>
+            <button class="btn btn-danger" id="clearBtn" onclick="clearAlerts()">🗑 Clear</button>
+          </div>
+        </div>
+
+        <!-- Severity breakdown -->
+        <div class="severity-bar">
+          <div class="sev-item crit">
+            <div class="sev-label">Critical</div>
+            <div class="sev-count" id="sevCrit">0</div>
+          </div>
+          <div class="sev-item high">
+            <div class="sev-label">High</div>
+            <div class="sev-count" id="sevHigh">0</div>
+          </div>
+          <div class="sev-item med">
+            <div class="sev-label">Medium</div>
+            <div class="sev-count" id="sevMed">0</div>
+          </div>
+          <div class="sev-item lo">
+            <div class="sev-label">Low</div>
+            <div class="sev-count" id="sevLow">0</div>
+          </div>
+        </div>
+
+        <div class="alert-header-row">
+          <span>Time</span>
+          <span>IP Addr</span>
+          <span>User</span>
+          <span>Source</span>
+          <span>Destination</span>
+          <span>Detections</span>
+          <span>Action</span>
+        </div>
+
+        <div class="alerts-scroll" id="alertList">
+          <div class="empty-state">
+            <div class="empty-state-icon">🛡️</div>
+            <div class="empty-state-title">No alerts yet</div>
+            <div class="empty-state-sub">Use the simulator to test the DLP pipeline</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIMULATOR -->
+      <div class="panel simulator-panel">
+        <div class="panel-header">
+          <span class="panel-title">⚡ DLP Simulator</span>
+        </div>
+        <div class="sim-body">
+
+          <div class="form-group">
+            <label>Quick Presets</label>
+            <div class="presets">
+              <button class="preset-btn" onclick="loadPreset('apikey')">🔑 API Key</button>
+              <button class="preset-btn" onclick="loadPreset('password')">🔒 Password</button>
+              <button class="preset-btn" onclick="loadPreset('creditcard')">💳 Credit Card</button>
+              <button class="preset-btn" onclick="loadPreset('jwt')">🪙 JWT</button>
+              <button class="preset-btn" onclick="loadPreset('github')">🐙 GitHub Token</button>
+              <button class="preset-btn" onclick="loadPreset('aws')">☁️ AWS Keys</button>
+              <button class="preset-btn" onclick="loadPreset('safe')">✅ Safe Text</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Payload (Outgoing Data)</label>
+            <textarea class="form-textarea" id="simPayload"
+              placeholder="Paste or type the outgoing data payload here..."></textarea>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label>Source Application</label>
+              <input class="form-input" id="simSource" type="text" placeholder="e.g. ChatApp" value="TestApp" />
+            </div>
+            <div class="form-group">
+              <label>Destination Host</label>
+              <input class="form-input" id="simDest" type="text" placeholder="e.g. api.openai.com"
+                value="api.external.com" />
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="scanBtn" onclick="runScan()" style="width:100%;">
+            🛡️ Scan Payload
+          </button>
+
+          <div id="simResult" style="display:none;"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RUNNING APPS -->
+    <div class="panel" style="grid-column: 1 / -1;">
+      <div class="panel-header">
+        <span class="panel-title">📱 Running Apps Monitor</span>
+        <div class="panel-actions">
+          <button class="btn btn-ghost" onclick="loadApps()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="app-summary" id="appSummary">
+        <span class="app-summary-item"><span class="dot green"></span> <span id="appScannable">0</span> Protected</span>
+        <span class="app-summary-item"><span class="dot orange"></span> <span id="appUnscannable">0</span> Unscannable
+          (Cert Pinned)</span>
+        <span class="app-summary-item">Total: <span id="appTotal">0</span></span>
+      </div>
+      <div class="app-monitor-grid" id="appGrid">
+        <div class="empty-state" style="grid-column:1/-1;padding:30px;">
+          <div class="empty-state-icon">📱</div>
+          <div class="empty-state-title">Scanning apps...</div>
+          <div class="empty-state-sub">Checking which apps are running on your system</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    /* ─── PRESETS ─── */
+    const PRESETS = {
+      apikey: {
+        source: "SlackBot",
+        dest: "api.openai.com",
+        payload: `Sending request to OpenAI:
+Content-Type: application/json
+Authorization: Bearer sk-abc123EXAMPLEKEY456def789ghi012jkl345mno678
+
+{"model":"gpt-4","messages":[{"role":"user","content":"Hello"}]}`
+      },
+      password: {
+        source: "LoginService",
+        dest: "auth.example.com",
+        payload: `POST /login HTTP/1.1
+Host: auth.example.com
+Content-Type: application/x-www-form-urlencoded
+
+username=ajay@company.com&password=MySuperSecretPass123!`
+      },
+      creditcard: {
+        source: "PaymentModule",
+        dest: "payments.stripe.com",
+        payload: `Processing payment for order #8821:
+Name: John Doe
+Card: 4532015112830366
+CVV: 742
+Expiry: 09/27`
+      },
+      jwt: {
+        source: "MobileApp",
+        dest: "api.backend.com",
+        payload: `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c`
+      },
+      github: {
+        source: "CIRunner",
+        dest: "github.com",
+        payload: `GITHUB_TOKEN=ghp_abcDEF1234567890abcDEF1234567890abcDEF
+git push origin main`
+      },
+      aws: {
+        source: "DeployScript",
+        dest: "s3.amazonaws.com",
+        payload: `AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+aws s3 cp local_file.txt s3://company-bucket/`
+      },
+      safe: {
+        source: "NewsReader",
+        dest: "feeds.bbc.com",
+        payload: "GET /news/technology HTTP/1.1\nHost: feeds.bbc.com\nAccept: application/json"
+      }
+    };
+
+    function loadPreset(name) {
+      const p = PRESETS[name];
+      if (!p) return;
+      document.getElementById('simPayload').value = p.payload;
+      document.getElementById('simSource').value = p.source;
+      document.getElementById('simDest').value = p.dest;
+      document.getElementById('simResult').style.display = 'none';
+    }
+
+    /* ─── SCAN ─── */
+    async function runScan() {
+      const payload = document.getElementById('simPayload').value.trim();
+      if (!payload) { showToast('⚠️ Please enter a payload to scan'); return; }
+
+      const btn = document.getElementById('scanBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Scanning...';
+
+      try {
+        const res = await fetch('/api/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            payload,
+            source_app: document.getElementById('simSource').value || 'Unknown',
+            destination: document.getElementById('simDest').value || 'Unknown'
+          })
+        });
+        const data = await res.json();
+        renderResult(data);
+        loadAlerts();
+        loadStats();
+      } catch (e) {
+        showToast('❌ Error connecting to DLP engine');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🛡️ Scan Payload';
+      }
+    }
+
+    function renderResult(data) {
+      const box = document.getElementById('simResult');
+      box.style.display = 'block';
+
+      const actionIcons = { BLOCK: '🚫', WARN: '⚠️', ALLOW: '✅' };
+      const detectionsHtml = data.detections.length === 0
+        ? '<p style="color:var(--text-muted);font-size:12px;">No sensitive data detected.</p>'
+        : data.detections.map(d => `
+        <div class="result-detection-item">
+          <div class="result-detection-header">
+            <span class="result-detection-name">${escHtml(d.data_type)}</span>
+            <span class="badge ${d.severity}">${d.severity}</span>
+          </div>
+          <div class="result-detection-value">${escHtml(d.redacted_value)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${escHtml(d.description)}</div>
+        </div>`).join('');
+
+      box.innerHTML = `
+    <div class="result-box">
+      <div class="result-action ${data.action}">${actionIcons[data.action] || ''} ${data.action}</div>
+      <div class="result-reason">${escHtml(data.reason)}</div>
+      <div class="result-detections">${detectionsHtml}</div>
+    </div>`;
+    }
+
+    /* ─── ALERTS ─── */
+    async function loadAlerts() {
+      try {
+        const res = await fetch('/api/alerts');
+        const alerts = await res.json();
+        renderAlerts(alerts);
+      } catch (e) { /* silently skip */ }
+    }
+
+    function renderAlerts(alerts) {
+      const container = document.getElementById('alertList');
+      if (!alerts.length) {
+        container.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">🛡️</div>
+      <div class="empty-state-title">No alerts yet</div>
+      <div class="empty-state-sub">Use the simulator to test the DLP pipeline</div>
+    </div>`;
+        return;
+      }
+
+      container.innerHTML = alerts.map(a => {
+        const t = new Date(a.timestamp + 'Z');
+        const timeStr = t.toLocaleTimeString('en-GB', { hour12: false });
+        const detBadges = a.detections.slice(0, 2).map(d =>
+          `<span class="badge ${d.severity}">${escHtml(d.data_type.split(' ')[0])}</span>`
+        ).join('');
+        const extra = a.detections.length > 2
+          ? `<span class="badge NONE">+${a.detections.length - 2}</span>` : '';
+
+        return `<div class="alert-row">
+      <span class="alert-time">${timeStr}</span>
+      <span class="alert-time">${escHtml(a.sender_ip || '')}</span>
+      <span class="alert-source">${escHtml(a.user_system_name || '')}</span>
+      <span class="alert-source">${escHtml(a.source_app)}</span>
+      <span class="alert-dest">${escHtml(a.destination)}</span>
+      <span class="alert-detections">${detBadges}${extra}</span>
+      <span><span class="action-badge ${a.action}">${a.action}</span></span>
+    </div>`;
+      }).join('');
+    }
+
+    /* ─── STATS ─── */
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const s = await res.json();
+        document.getElementById('statTotal').textContent = s.total ?? 0;
+        document.getElementById('statBlocked').textContent = s.blocked ?? 0;
+        document.getElementById('statWarned').textContent = s.warned ?? 0;
+        document.getElementById('statAllowed').textContent = s.allowed ?? 0;
+
+        const sev = s.by_severity || {};
+        document.getElementById('sevCrit').textContent = sev['CRITICAL'] ?? 0;
+        document.getElementById('sevHigh').textContent = sev['HIGH'] ?? 0;
+        document.getElementById('sevMed').textContent = sev['MEDIUM'] ?? 0;
+        document.getElementById('sevLow').textContent = sev['LOW'] ?? 0;
+      } catch (e) { /* silently skip */ }
+    }
+
+    /* ─── CLEAR ─── */
+    async function clearAlerts() {
+      if (!confirm('Clear all alert history?')) return;
+      try {
+        await fetch('/api/clear', { method: 'POST' });
+        loadAlerts();
+        loadStats();
+        showToast('🗑 Alert history cleared');
+      } catch (e) { showToast('❌ Error clearing alerts'); }
+    }
+
+    /* ─── TOAST ─── */
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /* ─── APP MONITOR ─── */
+    const APP_ICONS = {
+      'Messaging': '💬', 'AI Assistant': '🤖', 'Browser': '🌐',
+      'Development': '💻', 'Email': '📧', 'File Transfer': '📁',
+      'Productivity': '📝'
+    };
+
+    async function loadApps() {
+      try {
+        const res = await fetch('/api/apps');
+        const data = await res.json();
+        const grid = document.getElementById('appGrid');
+
+        document.getElementById('appTotal').textContent = data.total || 0;
+        document.getElementById('appScannable').textContent = data.scannable || 0;
+        document.getElementById('appUnscannable').textContent = data.unscannable || 0;
+
+        if (!data.apps || data.apps.length === 0) {
+          grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;padding:30px;">
+            <div class="empty-state-icon">✅</div>
+            <div class="empty-state-title">No monitored apps detected</div>
+            <div class="empty-state-sub">No known messaging, AI, or dev apps are currently running</div>
+          </div>`;
+          return;
+        }
+
+        grid.innerHTML = data.apps.map(app => {
+          const icon = APP_ICONS[app.category] || '📦';
+          const cls = app.scannable ? 'scannable' : 'unscannable';
+          const dotCls = app.scannable ? 'protected' : 'blind';
+          const label = app.scannable ? 'Protected' : 'Cert Pinned';
+          return `<div class="app-card ${cls}">
+            <div class="app-icon">${icon}</div>
+            <div class="app-info">
+              <div class="app-name">${esc(app.app_name)}</div>
+              <div class="app-category">${esc(app.category)} · ${label}</div>
+            </div>
+            <div class="app-status-dot ${dotCls}" title="${label}"></div>
+          </div>`;
+        }).join('');
+      } catch (e) {
+        console.error('[AppMonitor]', e);
+      }
+    }
+
+    /* ─── PROXY STATUS ─── */
+    let proxyActive = false;
+
+    async function loadProxyStatus() {
+      try {
+        const res = await fetch('/api/proxy/status');
+        const data = await res.json();
+        proxyActive = data.proxy_active;
+
+        const bar = document.getElementById('proxyBar');
+        const tag = document.getElementById('proxyModeTag');
+        const detail = document.getElementById('proxyDetail');
+        const toggleBtn = document.getElementById('proxyToggleBtn');
+
+        if (data.proxy_active) {
+          bar.className = 'proxy-bar active';
+          tag.className = 'proxy-mode-tag system-wide';
+          tag.textContent = '🔒 System-Wide Proxy';
+          detail.textContent = `All traffic routed through ${data.sentinelgate_proxy} • Browsers + Desktop Apps protected`;
+          toggleBtn.textContent = '⏹ Disable Proxy';
+          toggleBtn.style.display = '';
+        } else {
+          bar.className = 'proxy-bar inactive';
+          tag.className = 'proxy-mode-tag extension-only';
+          tag.textContent = '🌐 Dashboard Only';
+          detail.textContent = 'System proxy is not active — use Simulator or start the proxy service';
+          toggleBtn.textContent = '▶ Enable Proxy';
+          toggleBtn.style.display = '';
+        }
+      } catch (e) {
+        document.getElementById('proxyModeTag').textContent = '❓ Unknown';
+        document.getElementById('proxyDetail').textContent = 'Could not reach proxy status API';
+      }
+    }
+
+    async function toggleProxy() {
+      const btn = document.getElementById('proxyToggleBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Working...';
+      try {
+        const endpoint = proxyActive ? '/api/proxy/disable' : '/api/proxy/enable';
+        const res = await fetch(endpoint, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast(proxyActive ? '🔓 System proxy disabled' : '🔒 System proxy enabled');
+        } else {
+          showToast('❌ Failed to toggle proxy: ' + (data.error || 'Unknown error'));
+        }
+      } catch (e) {
+        showToast('❌ Error toggling proxy');
+      }
+      await loadProxyStatus();
+      btn.disabled = false;
+    }
+
+    /* ─── INIT & POLLING ─── */
+    loadStats();
+    loadAlerts();
+    loadProxyStatus();
+    loadApps();
+    setInterval(() => { loadStats(); loadAlerts(); loadProxyStatus(); }, 5000);
+    setInterval(loadApps, 15000);  // Apps update every 15 seconds
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Transmission Blocked | SentinelGate</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0f1117;
+            color: #e8eaf0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #modal {
+            background: #0f1117;
+            border: 1px solid rgba(255, 77, 109, 0.3);
+            border-radius: 32px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 1);
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 40px rgba(255, 77, 109, 0.8);
+        }
+
+        .title {
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 8px;
+            color: #ff4d6d;
+        }
+
+        .sub {
+            font-size: 14px;
+            color: #5c637a;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 24px;
+        }
+
+        .reason {
+            background: #161925;
+            border: 1px solid #252a3a;
+            border-radius: 16px;
+            padding: 20px;
+            color: #a0a8be;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .btn {
+            background: #1e2230;
+            color: #fff;
+            border: 1px solid #2d334a;
+            padding: 16px 32px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #252a3a;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="modal">
+        <div class="icon"></div>
+        <div class="title">Access Blocked</div>
+        <div class="sub">SentinelGate DLP (URL/Omnibox Defense)</div>
+        <div class="reason">
+            A sensitive string was typed directly into the URL bar or intercepted via an instant search.<br><br>
+            <strong>The search query has been blocked and aborted</strong> to prevent a data leak to the search engine.
+        </div>
+        <button class="btn" id="escape-btn">Go Back to Safety</button>
+    </div>
+    <script src="block.js"></script>
+</body>
+
+</html>
